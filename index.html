@@ -1,0 +1,513 @@
+<!DOCTYPE html>
+<html lang="ka">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, interactive-widget=resizes-content">
+<meta name="theme-color" content="#0e1117">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Cdefs%3E%3ClinearGradient id='g' x1='0' y1='0' x2='1' y2='1'%3E%3Cstop offset='0' stop-color='%236c7bff'/%3E%3Cstop offset='1' stop-color='%239a6cff'/%3E%3C/linearGradient%3E%3C/defs%3E%3Crect width='100' height='100' rx='22' fill='%230e1117'/%3E%3Cpath d='M50 18 L82 50 L50 82 L18 50 Z' fill='url(%23g)'/%3E%3C/svg%3E">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<title>GLM Chat</title>
+<style>
+  :root {
+    --bg: #0e1117;
+    --surface: #161b26;
+    --surface2: #1d2433;
+    --border: #2a3347;
+    --text: #e8ecf4;
+    --muted: #8b94a7;
+    --accent: #6c7bff;
+    --accent2: #9a6cff;
+    --danger: #ff5d5d;
+    --ok: #3ddc97;
+  }
+  * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+  html, body { margin: 0; padding: 0; height: 100%; }
+  body {
+    background: var(--bg); color: var(--text);
+    font-family: -apple-system, "Segoe UI", system-ui, Roboto, "Noto Sans Georgian", "BPG Nino Mtavruli", Arial, sans-serif;
+    display: flex; flex-direction: column;
+    height: 100dvh; overflow: hidden;
+  }
+  /* ---------- header ---------- */
+  header {
+    display: flex; align-items: center; gap: 8px;
+    padding: 10px 12px; padding-top: calc(10px + env(safe-area-inset-top));
+    background: rgba(14,17,23,.92); backdrop-filter: blur(10px);
+    border-bottom: 1px solid var(--border);
+    position: sticky; top: 0; z-index: 20;
+  }
+  .iconbtn {
+    background: none; border: none; color: var(--text); font-size: 20px;
+    width: 38px; height: 38px; border-radius: 10px; cursor: pointer;
+    display: flex; align-items: center; justify-content: center; flex: 0 0 auto;
+  }
+  .iconbtn:active { background: var(--surface2); }
+  .brand { display: flex; flex-direction: column; min-width: 0; flex: 1; }
+  .brand b { font-size: 15px; line-height: 1.2; }
+  .brand small { color: var(--muted); font-size: 11px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  /* ---------- chat area ---------- */
+  #chat { flex: 1; overflow-y: auto; padding: 16px 12px 8px; scroll-behavior: smooth; }
+  .msg { display: flex; margin-bottom: 14px; animation: fadein .18s ease; }
+  @keyframes fadein { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; } }
+  .msg.user { justify-content: flex-end; }
+  .bubble {
+    max-width: 86%; padding: 10px 14px; border-radius: 16px;
+    font-size: 15px; line-height: 1.55; word-wrap: break-word; overflow-wrap: anywhere;
+  }
+  .msg.user .bubble {
+    background: linear-gradient(135deg, var(--accent), var(--accent2));
+    color: #fff; border-bottom-right-radius: 5px; white-space: pre-wrap;
+  }
+  .msg.assistant .bubble {
+    background: var(--surface); border: 1px solid var(--border);
+    border-bottom-left-radius: 5px;
+  }
+  .msg.error .bubble { background: #3a1518; border: 1px solid #6e2a2e; color: #ffb3b3; font-size: 13px; }
+  .bubble p { margin: 0 0 8px; } .bubble p:last-child { margin-bottom: 0; }
+  .bubble ul, .bubble ol { margin: 4px 0 8px; padding-left: 20px; }
+  .bubble li { margin: 3px 0; }
+  .bubble h1,.bubble h2,.bubble h3 { margin: 10px 0 6px; font-size: 1.02em; }
+  .bubble code {
+    background: #0b0e14; border: 1px solid var(--border); border-radius: 5px;
+    padding: 1px 5px; font-size: .88em; font-family: ui-monospace, "Cascadia Code", Consolas, monospace;
+  }
+  .codeblock { position: relative; margin: 8px 0; }
+  .codeblock pre {
+    margin: 0; background: #0b0e14; border: 1px solid var(--border); border-radius: 10px;
+    padding: 26px 10px 10px; overflow-x: auto;
+  }
+  .codeblock code { background: none; border: none; padding: 0; font-size: 12.5px; line-height: 1.5; }
+  .codeblock .lang {
+    position: absolute; top: 5px; left: 10px; color: var(--muted); font-size: 10px;
+    text-transform: uppercase; letter-spacing: .5px;
+  }
+  .copybtn {
+    position: absolute; top: 3px; right: 4px; background: var(--surface2); color: var(--muted);
+    border: 1px solid var(--border); border-radius: 6px; font-size: 10px; padding: 3px 8px; cursor: pointer;
+  }
+  .copybtn:active { color: var(--text); }
+  .cursor { display: inline-block; width: 7px; height: 15px; background: var(--accent);
+    vertical-align: text-bottom; border-radius: 1px; animation: blink 1s step-start infinite; }
+  @keyframes blink { 50% { opacity: 0; } }
+  #empty { text-align: center; color: var(--muted); margin-top: 18vh; padding: 0 24px; }
+  #empty .logo { font-size: 44px; margin-bottom: 8px;
+    background: linear-gradient(135deg,var(--accent),var(--accent2)); -webkit-background-clip: text; background-clip: text; color: transparent; }
+  /* ---------- input bar ---------- */
+  footer {
+    padding: 8px 10px; padding-bottom: calc(8px + env(safe-area-inset-bottom));
+    background: rgba(14,17,23,.95); backdrop-filter: blur(10px); border-top: 1px solid var(--border);
+  }
+  .inputrow { display: flex; gap: 8px; align-items: flex-end; }
+  textarea#input {
+    flex: 1; resize: none; border: 1px solid var(--border); background: var(--surface);
+    color: var(--text); border-radius: 14px; padding: 11px 14px; font-size: 16px; font-family: inherit;
+    max-height: 130px; line-height: 1.4; outline: none;
+  }
+  textarea#input:focus { border-color: var(--accent); }
+  #send {
+    flex: 0 0 auto; width: 44px; height: 44px; border: none; border-radius: 50%;
+    background: linear-gradient(135deg, var(--accent), var(--accent2)); color: #fff;
+    font-size: 18px; cursor: pointer; display: flex; align-items: center; justify-content: center;
+  }
+  #send:disabled { opacity: .45; }
+  #send.stop { background: var(--danger); }
+  /* ---------- drawer ---------- */
+  #scrim { position: fixed; inset: 0; background: rgba(0,0,0,.55); z-index: 40; display: none; }
+  #drawer {
+    position: fixed; top: 0; bottom: 0; left: 0; width: min(80vw, 300px); z-index: 50;
+    background: var(--surface); border-right: 1px solid var(--border);
+    transform: translateX(-100%); transition: transform .22s ease;
+    display: flex; flex-direction: column; padding-top: env(safe-area-inset-top);
+  }
+  #drawer.open { transform: translateX(0); }
+  #drawer .dhead { display: flex; align-items: center; justify-content: space-between; padding: 14px; }
+  #drawer .dhead b { font-size: 15px; }
+  .newchat {
+    margin: 0 14px 10px; padding: 10px; border-radius: 10px; border: 1px dashed var(--accent);
+    background: none; color: var(--accent); font-size: 14px; cursor: pointer; font-family: inherit;
+  }
+  #chatlist { flex: 1; overflow-y: auto; padding: 0 8px; }
+  .chatitem {
+    padding: 11px 10px; border-radius: 10px; cursor: pointer; font-size: 13.5px;
+    color: var(--text); display: flex; justify-content: space-between; align-items: center; gap: 6px;
+  }
+  .chatitem.active { background: var(--surface2); }
+  .chatitem .t { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; flex: 1; }
+  .chatitem .del { color: var(--muted); font-size: 15px; padding: 0 4px; }
+  .chatitem .del:active { color: var(--danger); }
+  /* ---------- modal ---------- */
+  #modal {
+    position: fixed; inset: 0; z-index: 60; background: rgba(0,0,0,.6);
+    display: none; align-items: flex-end; justify-content: center;
+  }
+  .sheet {
+    background: var(--surface); border-radius: 18px 18px 0 0; width: 100%; max-width: 560px;
+    padding: 18px 16px calc(18px + env(safe-area-inset-bottom)); max-height: 88dvh; overflow-y: auto;
+  }
+  #modal.open { display: flex; }
+  .sheet h3 { margin: 0 0 14px; font-size: 16px; display: flex; justify-content: space-between; align-items: center; }
+  label { display: block; font-size: 12.5px; color: var(--muted); margin: 12px 0 5px; }
+  input[type=text], input[type=password], select, textarea.set {
+    width: 100%; background: var(--bg); color: var(--text); border: 1px solid var(--border);
+    border-radius: 10px; padding: 11px 12px; font-size: 15px; font-family: inherit; outline: none;
+  }
+  input:focus, select:focus, textarea.set:focus { border-color: var(--accent); }
+  textarea.set { resize: vertical; min-height: 60px; }
+  .row { display: flex; gap: 8px; }
+  .hint { font-size: 11.5px; color: var(--muted); margin-top: 5px; line-height: 1.5; }
+  .hint a { color: var(--accent); }
+  .save {
+    margin-top: 18px; width: 100%; padding: 13px; border: none; border-radius: 12px;
+    background: linear-gradient(135deg, var(--accent), var(--accent2)); color: #fff;
+    font-size: 15px; font-family: inherit; cursor: pointer;
+  }
+  .statusdot { width: 8px; height: 8px; border-radius: 50%; display: inline-block; margin-right: 5px; }
+</style>
+</head>
+<body>
+
+<header>
+  <button class="iconbtn" id="menuBtn" aria-label="ჩატები">☰</button>
+  <div class="brand">
+    <b>GLM Chat</b>
+    <small id="modelLabel">—</small>
+  </div>
+  <button class="iconbtn" id="setBtn" aria-label="პარამეტრები">⚙️</button>
+</header>
+
+<div id="chat">
+  <div id="empty">
+    <div class="logo">◆</div>
+    <div style="font-size:16px;color:var(--text);margin-bottom:4px"><b>გამარჯობა!</b></div>
+    <div style="font-size:13px">დამიწერე რამე — პასუხს streaming-ით მიიღებ.</div>
+  </div>
+</div>
+
+<footer>
+  <div class="inputrow">
+    <textarea id="input" rows="1" placeholder="მოვწერ..." enterkeyhint="send"></textarea>
+    <button id="send" aria-label="გაგზავნა">➤</button>
+  </div>
+</footer>
+
+<div id="scrim"></div>
+<nav id="drawer">
+  <div class="dhead"><b>ჩატები</b><button class="iconbtn" id="closeDrawer">✕</button></div>
+  <button class="newchat" id="newChatBtn">＋ ახალი ჩატი</button>
+  <div id="chatlist"></div>
+</nav>
+
+<div id="modal">
+  <div class="sheet">
+    <h3>⚙️ პარამეტრები <button class="iconbtn" id="closeModal">✕</button></h3>
+    <label>z.ai API გასაღები</label>
+    <div class="row">
+      <input type="password" id="apiKey" placeholder="ზ.გ. xxxxxxxx.xxxxxxxxxxxx" autocomplete="off">
+      <button class="iconbtn" id="showKey" style="border:1px solid var(--border)">👁</button>
+    </div>
+    <div class="hint">გასაღებს მიიღებ <a href="https://z.ai/manage-apikey/apikey-list" target="_blank">z.ai-ის კონსოლიდან</a>. ინახება მხოლოდ ამ ტელეფონზე, ლოკალურად.</div>
+
+    <label>მოდელი</label>
+    <input type="text" id="model" list="models" placeholder="glm-5.3">
+    <datalist id="models">
+      <option value="glm-5.3"><option value="glm-5.1"><option value="glm-4.6">
+      <option value="glm-4.5-air"><option value="glm-4.5-flash">
+    </datalist>
+
+    <label>API ფორმატი</label>
+    <select id="apiFormat">
+      <option value="auto">ავტომატური (ორივე ცდის)</option>
+      <option value="openai">OpenAI-თავსებადი</option>
+      <option value="anthropic">Anthropic-თავსებადი</option>
+    </select>
+    <div class="hint">coding plan-ის გასაღებისთვის „ავტომატური" დეფოლტად კარგია.</div>
+
+    <label>სისტემური მითითება (system prompt) — არასავალდებულო</label>
+    <textarea class="set" id="sysPrompt" placeholder="მაგ: შენ ხარ დამხმარე ასისტენტი, პასუხობ ქართულად..."></textarea>
+
+    <button class="save" id="saveBtn">შენახვა</button>
+  </div>
+</div>
+
+<script>
+"use strict";
+/* ================= storage ================= */
+const LS_SET = "glmch_settings_v1", LS_CHATS = "glmch_chats_v1";
+let settings = Object.assign(
+  { key: "", model: "glm-5.3", format: "auto", workingFormat: "", sys: "" },
+  JSON.parse(localStorage.getItem(LS_SET) || "{}")
+);
+let chats = JSON.parse(localStorage.getItem(LS_CHATS) || "[]");
+let curId = chats[0]?.id || null;
+let streaming = false, aborter = null;
+
+const $ = (s) => document.querySelector(s);
+const saveSettings = () => localStorage.setItem(LS_SET, JSON.stringify(settings));
+const saveChats = () => localStorage.setItem(LS_CHATS, JSON.stringify(chats.slice(0, 60)));
+const curChat = () => chats.find(c => c.id === curId);
+
+/* ================= markdown-lite ================= */
+function esc(s) {
+  return s.replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;");
+}
+function md(src) {
+  const blocks = [];
+  src = src.replace(/```(\w*)\n?([\s\S]*?)(?:```|$)/g, (_, lang, code) => {
+    blocks.push({ lang: lang || "code", code });
+    return "\u0000B" + (blocks.length - 1) + "\u0000";
+  });
+  let h = esc(src);
+  h = h.replace(/^### (.*)$/gm, "<h3>$1</h3>").replace(/^## (.*)$/gm, "<h2>$1</h2>").replace(/^# (.*)$/gm, "<h1>$1</h1>");
+  h = h.replace(/^[-*] (.+)$/gm, "<li>$1</li>").replace(/(<li>[\s\S]*?<\/li>)(?!\s*<li>)/g, "<ul>$1</ul>");
+  h = h.replace(/`([^`\n]+)`/g, "<code>$1</code>");
+  h = h.replace(/\*\*([^*\n]+)\*\*/g, "<b>$1</b>").replace(/(^|\s)\*([^*\n]+)\*(?=\s|$)/g, "$1<i>$2</i>");
+  h = h.replace(/\[([^\]]+)\]\((https?:[^)\s]+)\)/g, '<a href="$2" target="_blank" rel="noopener" style="color:var(--accent)">$1</a>');
+  h = h.split(/\n{2,}/).map(p => /^<(h\d|ul|ol)/.test(p.trim()) ? p : "<p>" + p.replace(/\n/g, "<br>") + "</p>").join("");
+  h = h.replace(/\u0000B(\d+)\u0000/g, (_, i) => {
+    const b = blocks[+i];
+    return '<div class="codeblock"><span class="lang">' + esc(b.lang) + '</span>' +
+      '<button class="copybtn" onclick="copyCode(this)">დააკოპირე</button>' +
+      '<pre><code>' + esc(b.code.replace(/\n$/, "")) + "</code></pre></div>";
+  });
+  return h;
+}
+window.copyCode = (btn) => {
+  const code = btn.parentElement.querySelector("code").innerText;
+  navigator.clipboard?.writeText(code).then(() => {
+    btn.textContent = "✓ დაკოპირდა"; setTimeout(() => (btn.textContent = "დააკოპირე"), 1400);
+  });
+};
+
+/* ================= rendering ================= */
+const EMPTY_HTML = document.getElementById("empty").outerHTML;
+function renderChat() {
+  const chatEl = $("#chat"), c = curChat();
+  chatEl.innerHTML = "";
+  if (!c || c.msgs.length === 0) {
+    chatEl.innerHTML = EMPTY_HTML;
+    return;
+  }
+  for (const m of c.msgs) chatEl.appendChild(bubble(m));
+  scrollDown(true);
+}
+function bubble(m) {
+  const div = document.createElement("div");
+  div.className = "msg " + m.role;
+  const b = document.createElement("div");
+  b.className = "bubble";
+  if (m.role === "user") b.textContent = m.content;
+  else if (m.role === "error") b.textContent = "⚠️ " + m.content;
+  else b.innerHTML = md(m.content);
+  div.appendChild(b);
+  return div;
+}
+function scrollDown(force) {
+  const el = $("#chat");
+  const near = el.scrollHeight - el.scrollTop - el.clientHeight < 140;
+  if (force || near) el.scrollTop = el.scrollHeight;
+}
+function renderDrawer() {
+  const list = $("#chatlist");
+  list.innerHTML = "";
+  for (const c of [...chats].sort((a, b) => b.upd - a.upd)) {
+    const item = document.createElement("div");
+    item.className = "chatitem" + (c.id === curId ? " active" : "");
+    const t = document.createElement("div");
+    t.className = "t"; t.textContent = c.title || "ახალი ჩატი";
+    const del = document.createElement("div");
+    del.className = "del"; del.textContent = "🗑";
+    del.onclick = (e) => {
+      e.stopPropagation();
+      chats = chats.filter(x => x.id !== c.id);
+      if (curId === c.id) curId = chats[0]?.id || null;
+      saveChats(); renderDrawer(); renderChat();
+    };
+    item.append(t, del);
+    item.onclick = () => { curId = c.id; renderDrawer(); renderChat(); closeDrawer(); };
+    list.appendChild(item);
+  }
+}
+function updateModelLabel() {
+  const ok = settings.key ? "var(--ok)" : "var(--danger)";
+  $("#modelLabel").innerHTML =
+    '<span class="statusdot" style="background:' + ok + '"></span>' + esc(settings.model) +
+    (settings.workingFormat ? " · " + settings.workingFormat : "");
+}
+
+/* ================= API ================= */
+async function apiStream(messages, onDelta) {
+  const tryOpenAI = async () => {
+    const r = await fetch("https://api.z.ai/api/paas/v4/chat/completions", {
+      method: "POST",
+      headers: { "Content-Type": "application/json", "Authorization": "Bearer " + settings.key },
+      body: JSON.stringify({ model: settings.model, stream: true, messages: settings.sys ? [{ role: "system", content: settings.sys }, ...messages] : messages }),
+      signal: aborter.signal,
+    });
+    if (!r.ok) throw new Error("openai:" + r.status + ":" + (await r.text()).slice(0, 300));
+    settings.workingFormat = "openai"; saveSettings();
+    await readSSE(r, (json) => { const d = json.choices?.[0]?.delta?.content; if (d) onDelta(d); });
+  };
+  const tryAnthropic = async () => {
+    // anthropic-ს უნდა user/assistant მონაცვლეობა — ვათავსებთ ზედიზედ ერთი როლის წერილებს
+    const merged = [];
+    for (const m of messages) {
+      const last = merged[merged.length - 1];
+      if (last && last.role === m.role) last.content += "\n\n" + m.content;
+      else merged.push({ role: m.role, content: m.content });
+    }
+    if (merged[0]?.role === "assistant") merged.shift();
+    const r = await fetch("https://api.z.ai/api/anthropic/v1/messages", {
+      method: "POST",
+      headers: { "Content-Type": "application/json", "x-api-key": settings.key, "anthropic-version": "2023-06-01" },
+      body: JSON.stringify({ model: settings.model, stream: true, max_tokens: 8192, system: settings.sys || undefined, messages: merged }),
+      signal: aborter.signal,
+    });
+    if (!r.ok) throw new Error("anthropic:" + r.status + ":" + (await r.text()).slice(0, 300));
+    settings.workingFormat = "anthropic"; saveSettings();
+    await readSSE(r, (json) => {
+      if (json.type === "content_block_delta" && json.delta?.text) onDelta(json.delta.text);
+    });
+  };
+  const order = settings.format === "anthropic" ? [tryAnthropic]
+    : settings.format === "openai" ? [tryOpenAI]
+    : settings.workingFormat === "anthropic" ? [tryAnthropic, tryOpenAI]
+    : [tryOpenAI, tryAnthropic];
+
+  const errs = [];
+  for (const fn of order) {
+    try { await fn(); return; }
+    catch (e) {
+      if (e.name === "AbortError") throw e;
+      errs.push(e.message);
+      // 401/403 — გასაღების პრობლემაა, მეორე ფორმატს ვცდით მაინც (auto რეჟიმში)
+    }
+  }
+  const last = errs[errs.length - 1] || "უცნობი შეცდომა";
+  const m = last.match(/^(\w+):(\d+):/);
+  let msg = "დაკავშირება ვერ მოხერხდა: " + last.slice(0, 220);
+  if (m && (m[2] === "401" || m[2] === "403")) msg = "API გასაღები არასწორია ან არ აქვს წვდომა (შეამოწმე ⚙️ პარამეტრებში).";
+  else if (m && m[2] === "429") msg = "მოთხოვნების ლიმიტი ამოიწურა — ცოტა ხანში ცადე.";
+  else if (last.startsWith("Failed to fetch") || last.includes("NetworkError")) msg = "ინტერნეტ კავშირი არ არის.";
+  throw new Error(msg);
+}
+async function readSSE(response, onJson) {
+  const reader = response.body.getReader();
+  const dec = new TextDecoder();
+  let buf = "";
+  while (true) {
+    const { done, value } = await reader.read();
+    if (done) break;
+    buf += dec.decode(value, { stream: true });
+    const parts = buf.split("\n");
+    buf = parts.pop();
+    for (const line of parts) {
+      const s = line.trim();
+      if (!s.startsWith("data:")) continue;
+      const data = s.slice(5).trim();
+      if (!data || data === "[DONE]") continue;
+      try { onJson(JSON.parse(data)); } catch (e) {}
+    }
+  }
+}
+
+/* ================= send ================= */
+async function send() {
+  if (streaming) { aborter?.abort(); return; }
+  const input = $("#input");
+  const text = input.value.trim();
+  if (!text) return;
+  if (!settings.key) { openModal(); return; }
+
+  if (!curChat()) {
+    const c = { id: Date.now().toString(36), title: text.slice(0, 40), msgs: [], upd: Date.now() };
+    chats.unshift(c); curId = c.id;
+  }
+  const c = curChat();
+  c.msgs.push({ role: "user", content: text });
+  c.upd = Date.now(); saveChats(); renderDrawer();
+  input.value = ""; input.style.height = "auto";
+  $("#empty")?.remove();
+  $("#chat").appendChild(bubble(c.msgs[c.msgs.length - 1]));
+  scrollDown(true);
+
+  streaming = true; aborter = new AbortController();
+  const btn = $("#send");
+  btn.classList.add("stop"); btn.textContent = "■";
+
+  const holder = document.createElement("div");
+  holder.className = "msg assistant";
+  const hb = document.createElement("div");
+  hb.className = "bubble";
+  hb.innerHTML = '<span class="cursor"></span>';
+  holder.appendChild(hb);
+  $("#chat").appendChild(holder);
+  scrollDown(true);
+
+  let acc = "", lastRender = 0;
+  try {
+    const hist = c.msgs.slice(-40).map(m => ({ role: m.role === "error" ? "user" : m.role, content: m.content }));
+    await apiStream(hist, (d) => {
+      acc += d;
+      const now = Date.now();
+      if (now - lastRender > 60) { lastRender = now; hb.innerHTML = md(acc) + '<span class="cursor"></span>'; scrollDown(false); }
+    });
+    c.msgs.push({ role: "assistant", content: acc || "(ცარიელი პასუხი)" });
+  } catch (e) {
+    if (e.name === "AbortError") { if (acc) c.msgs.push({ role: "assistant", content: acc }); }
+    else c.msgs.push({ role: "error", content: e.message });
+  } finally {
+    streaming = false; aborter = null;
+    btn.classList.remove("stop"); btn.textContent = "➤";
+    c.upd = Date.now(); saveChats(); renderDrawer(); renderChat(); updateModelLabel();
+  }
+}
+
+/* ================= UI wiring ================= */
+$("#send").onclick = send;
+const input = $("#input");
+input.addEventListener("keydown", (e) => {
+  if (e.key === "Enter" && !e.shiftKey && !e.isComposing) { e.preventDefault(); send(); }
+});
+input.addEventListener("input", () => {
+  input.style.height = "auto";
+  input.style.height = Math.min(input.scrollHeight, 130) + "px";
+});
+function openDrawer() { $("#drawer").classList.add("open"); $("#scrim").style.display = "block"; }
+function closeDrawer() { $("#drawer").classList.remove("open"); $("#scrim").style.display = "none"; }
+$("#menuBtn").onclick = () => { renderDrawer(); openDrawer(); };
+$("#closeDrawer").onclick = closeDrawer;
+$("#scrim").onclick = closeDrawer;
+$("#newChatBtn").onclick = () => {
+  const c = { id: Date.now().toString(36), title: "ახალი ჩატი", msgs: [], upd: Date.now() };
+  chats.unshift(c); curId = c.id; saveChats(); renderDrawer(); renderChat(); closeDrawer();
+};
+function openModal() {
+  $("#apiKey").value = settings.key;
+  $("#model").value = settings.model;
+  $("#apiFormat").value = settings.format;
+  $("#sysPrompt").value = settings.sys;
+  $("#modal").classList.add("open");
+}
+function closeModal() { $("#modal").classList.remove("open"); }
+$("#setBtn").onclick = openModal;
+$("#closeModal").onclick = closeModal;
+$("#modal").addEventListener("click", (e) => { if (e.target.id === "modal") closeModal(); });
+$("#showKey").onclick = () => {
+  const k = $("#apiKey");
+  k.type = k.type === "password" ? "text" : "password";
+};
+$("#saveBtn").onclick = () => {
+  settings.key = $("#apiKey").value.trim();
+  settings.model = $("#model").value.trim() || "glm-5.3";
+  settings.format = $("#apiFormat").value;
+  settings.sys = $("#sysPrompt").value.trim();
+  settings.workingFormat = ""; // თავიდან დაადგინოს
+  saveSettings(); updateModelLabel(); closeModal();
+};
+
+renderChat(); renderDrawer(); updateModelLabel();
+if (!settings.key) setTimeout(openModal, 400);
+</script>
+</body>
+</html>
