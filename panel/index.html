@@ -111,6 +111,10 @@
       </select>
       <input id="keyVal" type="password" placeholder="გასაღები" autocomplete="off">
       <div class="sendrow"><span class="msg" id="keyMsg"></span><button class="btn" id="keySave">შენახვა vault-ში</button></div>
+      <div style="margin-top:12px;border-top:1px solid var(--line);padding-top:12px">
+        <div class="label">ან დააკავშირე OAuth-ით — გასაღები ხელით არ შეგყავს</div>
+        <button class="btn primary" id="orConnect">OpenRouter-ის დაკავშირება (Authorize)</button>
+      </div>
     </div>
   </div>
 </div>
@@ -191,6 +195,28 @@ $("keySave").onclick = async ()=>{
 };
 function keyNote(t,err){ const el=$("keyMsg"); el.textContent=t; el.className="msg"+(err?" err":""); }
 
+/* ---------- OpenRouter OAuth (PKCE) → vault, აკრეფის გარეშე ---------- */
+function b64url(buf){ return btoa(String.fromCharCode(...new Uint8Array(buf))).replace(/\+/g,'-').replace(/\//g,'_').replace(/=+$/,''); }
+$("orConnect").onclick = async ()=>{
+  const verifier = b64url(crypto.getRandomValues(new Uint8Array(32)));
+  const challenge = b64url(await crypto.subtle.digest('SHA-256', new TextEncoder().encode(verifier)));
+  sessionStorage.setItem('or_verifier', verifier);
+  const cb = location.origin + location.pathname;
+  location.href = `https://openrouter.ai/auth?callback_url=${encodeURIComponent(cb)}&code_challenge=${challenge}&code_challenge_method=S256`;
+};
+async function handleOAuthReturn(){
+  const u = new URL(location.href);
+  const code = u.searchParams.get('code');
+  if(!code) return;
+  const verifier = sessionStorage.getItem('or_verifier');
+  u.searchParams.delete('code'); history.replaceState({}, '', u.toString());
+  if(!verifier){ keyNote('OAuth: verifier დაიკარგა, სცადე თავიდან', true); return; }
+  keyNote('OpenRouter დაკავშირება…');
+  try{ await invokeFn('oauth-openrouter', { code, verifier }); keyNote('OpenRouter დაკავშირდა ✓ (გასაღები vault-ში)'); }
+  catch(e){ keyNote('OAuth შეცდომა: '+e.message, true); }
+  sessionStorage.removeItem('or_verifier');
+}
+
 /* ---------- status + feed (polling) ---------- */
 function dotClass(s){ s=(s||"").toLowerCase();
   if(s==="completed"||s==="done") return "online";
@@ -245,6 +271,7 @@ async function boot(){
     $("app").classList.remove("hidden");
     $("who").textContent = session.user.email;
     startLive();
+    handleOAuthReturn();
   }else{
     $("app").classList.add("hidden");
     $("login").classList.remove("hidden");
