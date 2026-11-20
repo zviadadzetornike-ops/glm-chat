@@ -214,8 +214,16 @@ async function refresh(){
     renderAgents(a.agents); renderRuns(f.runs);
   }catch(e){ /* ignore transient poll errors */ }
 }
-let pollTimer=null;
-function startPolling(){ refresh(); clearInterval(pollTimer); pollTimer=setInterval(refresh, POLL_MS); }
+let liveChannel=null, debounce=null;
+function onSignal(){ clearTimeout(debounce); debounce=setTimeout(refresh, 300); }
+async function startLive(){
+  await refresh();                 // ერთი საწყისი წამოღება
+  try{ await db.realtime.setAuth(); }catch(e){}
+  if(liveChannel) await db.removeChannel(liveChannel);
+  liveChannel = db.channel('panel-live')
+    .on('postgres_changes', { event:'INSERT', schema:'public', table:'panel_events' }, onSignal)
+    .subscribe();
+}
 
 /* ---------- boot ---------- */
 async function boot(){
@@ -224,11 +232,11 @@ async function boot(){
     $("login").classList.add("hidden");
     $("app").classList.remove("hidden");
     $("who").textContent = session.user.email;
-    startPolling();
+    startLive();
   }else{
     $("app").classList.add("hidden");
     $("login").classList.remove("hidden");
-    clearInterval(pollTimer);
+    if(liveChannel){ db.removeChannel(liveChannel); liveChannel=null; }
   }
 }
 boot();
