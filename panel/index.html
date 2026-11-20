@@ -152,7 +152,7 @@ function b64url(buf){ return btoa(String.fromCharCode(...new Uint8Array(buf))).r
 $("orConnect").onclick = async ()=>{
   const verifier = b64url(crypto.getRandomValues(new Uint8Array(32)));
   const challenge = b64url(await crypto.subtle.digest('SHA-256', new TextEncoder().encode(verifier)));
-  sessionStorage.setItem('or_verifier', verifier);
+  localStorage.setItem('or_verifier', verifier);
   const cb = location.origin + location.pathname;
   location.href = `https://openrouter.ai/auth?callback_url=${encodeURIComponent(cb)}&code_challenge=${challenge}&code_challenge_method=S256`;
 };
@@ -160,13 +160,13 @@ async function handleOAuthReturn(){
   const u = new URL(location.href);
   const code = u.searchParams.get('code');
   if(!code) return;
-  const verifier = sessionStorage.getItem('or_verifier');
+  const verifier = localStorage.getItem('or_verifier');
   u.searchParams.delete('code'); history.replaceState({},'', u.toString());
   if(!verifier){ keyNote('OAuth: verifier დაიკარგა, სცადე თავიდან', true); return; }
   keyNote('OpenRouter დაკავშირება…');
   try{ await callFn('oauth-openrouter',{ code, verifier }); keyNote('OpenRouter დაკავშირდა ✓ (გასაღები vault-ში)'); }
   catch(e){ keyNote('OAuth შეცდომა: '+e.message, true); }
-  sessionStorage.removeItem('or_verifier');
+  localStorage.removeItem('or_verifier');
 }
 
 /* status + feed */
