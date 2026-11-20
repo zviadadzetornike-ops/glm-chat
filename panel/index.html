@@ -1,0 +1,237 @@
+<!DOCTYPE html>
+<html lang="ka">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>აგენტების სამართავი პანელი</title>
+<style>
+  :root{
+    --bg:#0f1115; --panel:#171a21; --line:#272b36; --txt:#e7e9ee;
+    --muted:#9aa3b2; --accent:#4f8cff; --ok:#2ecc71; --run:#f1c40f;
+    --fail:#e74c3c; --queued:#7f8c9a;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--txt);
+    font-family:system-ui,-apple-system,"Segoe UI",sans-serif;font-size:15px;line-height:1.5}
+  .wrap{max-width:820px;margin:0 auto;padding:16px}
+  h1{font-size:18px;margin:0 0 14px}
+  .card{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:14px;margin-bottom:14px}
+  .label{color:var(--muted);font-size:13px;margin-bottom:8px}
+  .btn{background:#222734;color:var(--txt);border:1px solid var(--line);border-radius:8px;padding:9px 14px;cursor:pointer;font-size:14px}
+  .btn:hover{border-color:var(--accent)}
+  .btn.primary{background:var(--accent);border-color:var(--accent);font-weight:600}
+  .btn:disabled{opacity:.5;cursor:not-allowed}
+  input,textarea{width:100%;background:#11141a;color:var(--txt);border:1px solid var(--line);border-radius:8px;padding:10px;font:inherit;margin-bottom:10px}
+  textarea{min-height:90px;resize:vertical}
+  .msg{color:var(--muted);font-size:13px;min-height:18px}
+  .msg.err{color:var(--fail)}
+  .hidden{display:none}
+  /* status bar */
+  .statusbar{display:flex;flex-wrap:wrap;gap:10px}
+  .chip{display:flex;align-items:center;gap:8px;background:#11141a;border:1px solid var(--line);border-radius:999px;padding:6px 12px}
+  .dot{width:9px;height:9px;border-radius:50%;background:var(--queued)}
+  .dot.online{background:var(--ok)} .dot.busy{background:var(--run)} .dot.offline{background:var(--fail)}
+  .chip .nm{font-weight:600} .chip .st{color:var(--muted);font-size:12px}
+  /* selection */
+  .agents{display:flex;flex-wrap:wrap;gap:10px;margin-bottom:10px}
+  .agents label{display:flex;align-items:center;gap:8px;background:#11141a;border:1px solid var(--line);border-radius:8px;padding:8px 12px;cursor:pointer;user-select:none}
+  .agents input{width:17px;height:17px;accent-color:var(--accent);margin:0}
+  .quick{display:flex;gap:8px;margin-bottom:14px}
+  .sendrow{display:flex;justify-content:space-between;align-items:center;gap:10px}
+  .top{display:flex;justify-content:space-between;align-items:center;margin-bottom:14px}
+  .who{color:var(--muted);font-size:12px}
+  /* runs */
+  .run{border:1px solid var(--line);border-radius:10px;padding:10px 12px;margin-bottom:10px;background:#11141a}
+  .run .rtop{display:flex;justify-content:space-between;align-items:center;gap:10px;margin-bottom:4px}
+  .run .agent{font-weight:600}
+  .badge{font-size:12px;padding:2px 10px;border-radius:999px;border:1px solid var(--line)}
+  .badge.queued{color:var(--queued)} .badge.running,.badge.claimed{color:var(--run);border-color:var(--run)}
+  .badge.completed,.badge.done{color:var(--ok);border-color:var(--ok)} .badge.failed,.badge.blocked,.badge.cancelled{color:var(--fail);border-color:var(--fail)}
+  .run .title{font-size:13px;color:var(--muted);margin-bottom:4px}
+  .run .out{white-space:pre-wrap;word-break:break-word;font-size:14px}
+  .run .ts{color:var(--muted);font-size:12px}
+  .empty{color:var(--muted);text-align:center;padding:16px}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>აგენტების სამართავი პანელი</h1>
+
+  <!-- LOGIN -->
+  <div id="login" class="card hidden">
+    <div class="label">შესვლა — ელფოსტის კოდით</div>
+    <input id="email" type="email" placeholder="ელფოსტა" value="zviadadzetornike@gmail.com" autocomplete="email">
+    <div id="step1">
+      <button class="btn primary" id="sendCode">კოდის გამოგზავნა</button>
+    </div>
+    <div id="step2" class="hidden">
+      <input id="code" inputmode="numeric" placeholder="ფოსტაზე მოსული კოდი">
+      <button class="btn primary" id="verify">შესვლა</button>
+    </div>
+    <div class="msg" id="loginMsg"></div>
+  </div>
+
+  <!-- APP -->
+  <div id="app" class="hidden">
+    <div class="top">
+      <span class="who" id="who"></span>
+      <button class="btn" id="logout">გასვლა</button>
+    </div>
+
+    <div class="card">
+      <div class="label">სტატუსი</div>
+      <div id="statusbar" class="statusbar"><span class="empty">იტვირთება…</span></div>
+    </div>
+
+    <div class="card">
+      <div class="label">აირჩიე სამიზნე</div>
+      <div class="agents" id="agentSel">
+        <label><input type="checkbox" value="claude">claude</label>
+        <label><input type="checkbox" value="autoclaw">autoclaw</label>
+        <label><input type="checkbox" value="gemini">gemini</label>
+      </div>
+      <div class="quick">
+        <button class="btn" id="selAll">ყველა</button>
+        <button class="btn" id="selNone">გასუფთავება</button>
+      </div>
+      <div class="label">დავალება</div>
+      <textarea id="message" placeholder="დაწერე დავალება მონიშნული აგენტებისთვის…"></textarea>
+      <div class="sendrow">
+        <span class="msg" id="sendMsg"></span>
+        <button class="btn primary" id="send">გაგზავნა</button>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="label">პასუხები</div>
+      <div id="runs"><span class="empty">ჯერ ჩანაწერი არ არის</span></div>
+    </div>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script>
+const SUPABASE_URL = "https://felhvrlanhfbqmmpqume.supabase.co";
+const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZlbGh2cmxhbmhmYnFtbXBxdW1lIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODgxNzQ4MzUsImV4cCI6MjEwMzc1MDgzNX0.SrjZbOmhdiFL_1NarnZ0dIb5kWELnL92sul0MephyK4";
+const FUNCTION = "dispatch-task";
+const POLL_MS = 5000;
+
+const db = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+const $ = (id)=>document.getElementById(id);
+const esc = (s)=>String(s??"").replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+
+/* ---------- auth ---------- */
+async function callFn(payload){
+  const { data, error } = await db.functions.invoke(FUNCTION, { body: payload });
+  if (error) {
+    let m = error.message || "შეცდომა";
+    try { const j = await error.context.json(); if (j.error) m = j.error; } catch(e){}
+    throw new Error(m);
+  }
+  return data;
+}
+
+$("sendCode").onclick = async ()=>{
+  const email = $("email").value.trim();
+  if(!email) return loginNote("ჩაწერე ელფოსტა", true);
+  $("sendCode").disabled = true; loginNote("იგზავნება კოდი…");
+  const { error } = await db.auth.signInWithOtp({ email, options:{ shouldCreateUser:true } });
+  $("sendCode").disabled = false;
+  if(error) return loginNote("შეცდომა: "+error.message, true);
+  $("step2").classList.remove("hidden");
+  loginNote("კოდი გაიგზავნა — შეამოწმე ფოსტა");
+};
+$("verify").onclick = async ()=>{
+  const email = $("email").value.trim();
+  const token = $("code").value.trim();
+  if(!token) return loginNote("ჩაწერე კოდი", true);
+  $("verify").disabled = true; loginNote("შემოწმება…");
+  const { error } = await db.auth.verifyOtp({ email, token, type:"email" });
+  $("verify").disabled = false;
+  if(error) return loginNote("არასწორი კოდი: "+error.message, true);
+  boot();
+};
+$("logout").onclick = async ()=>{ await db.auth.signOut(); location.reload(); };
+function loginNote(t,err){ const el=$("loginMsg"); el.textContent=t; el.className="msg"+(err?" err":""); }
+
+/* ---------- selection ---------- */
+const boxes = ()=>[...document.querySelectorAll('#agentSel input[type=checkbox]')];
+$("selAll").onclick = ()=> boxes().forEach(b=>b.checked=true);
+$("selNone").onclick = ()=> boxes().forEach(b=>b.checked=false);
+const selected = ()=> boxes().filter(b=>b.checked).map(b=>b.value);
+
+/* ---------- dispatch ---------- */
+$("send").onclick = async ()=>{
+  const message = $("message").value.trim();
+  const targets = selected();
+  if(!message) return sendNote("დაწერე დავალება", true);
+  if(message.length<3) return sendNote("დავალება ძალიან მოკლეა (მინ. 3 სიმბოლო)", true);
+  if(!targets.length) return sendNote("მონიშნე მინიმუმ ერთი აგენტი", true);
+  $("send").disabled = true; sendNote("იგზავნება…");
+  try{
+    await callFn({ action:"dispatch", message, targets });
+    $("message").value = "";
+    sendNote("გაიგზავნა → "+targets.join(", "));
+    refresh();
+  }catch(e){ sendNote("შეცდომა: "+e.message, true); }
+  finally{ $("send").disabled = false; }
+};
+function sendNote(t,err){ const el=$("sendMsg"); el.textContent=t; el.className="msg"+(err?" err":""); }
+
+/* ---------- status + feed (polling) ---------- */
+function dotClass(s){ s=(s||"").toLowerCase();
+  if(s==="completed"||s==="done") return "online";
+  if(s==="running"||s==="claimed") return "busy";
+  if(s==="failed"||s==="blocked") return "offline";
+  return ""; }
+function renderAgents(list){
+  const el=$("statusbar");
+  if(!list||!list.length){ el.innerHTML='<span class="empty">—</span>'; return; }
+  el.innerHTML = list.map(a=>{
+    const seen = a.last_seen ? new Date(a.last_seen).toLocaleTimeString("ka-GE") : "";
+    const st = a.status||"unknown";
+    return `<div class="chip"><span class="dot ${dotClass(st)}"></span>
+      <span class="nm">${esc(a.name)}</span><span class="st">${esc(st)}${seen?" · "+seen:""}</span></div>`;
+  }).join("");
+}
+function badge(s){ s=(s||"queued").toLowerCase(); return `<span class="badge ${s}">${esc(s)}</span>`; }
+function renderRuns(runs){
+  const el=$("runs");
+  if(!runs||!runs.length){ el.innerHTML='<span class="empty">ჯერ ჩანაწერი არ არის</span>'; return; }
+  el.innerHTML = runs.map(r=>{
+    const ts = r.created_at ? new Date(r.created_at).toLocaleString("ka-GE") : "";
+    return `<div class="run">
+      <div class="rtop"><span class="agent">${esc(r.assignee)}</span>${badge(r.status)}</div>
+      ${r.title?`<div class="title">${esc(r.title)}</div>`:""}
+      <div class="ts">${ts}</div>
+      ${r.result?`<div class="out">${esc(r.result)}</div>`:""}
+    </div>`;
+  }).join("");
+}
+async function refresh(){
+  try{
+    const [a,f] = await Promise.all([ callFn({action:"agents"}), callFn({action:"feed"}) ]);
+    renderAgents(a.agents); renderRuns(f.runs);
+  }catch(e){ /* ignore transient poll errors */ }
+}
+let pollTimer=null;
+function startPolling(){ refresh(); clearInterval(pollTimer); pollTimer=setInterval(refresh, POLL_MS); }
+
+/* ---------- boot ---------- */
+async function boot(){
+  const { data:{ session } } = await db.auth.getSession();
+  if(session){
+    $("login").classList.add("hidden");
+    $("app").classList.remove("hidden");
+    $("who").textContent = session.user.email;
+    startPolling();
+  }else{
+    $("app").classList.add("hidden");
+    $("login").classList.remove("hidden");
+    clearInterval(pollTimer);
+  }
+}
+boot();
+</script>
+</body>
+</html>
