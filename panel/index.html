@@ -160,9 +160,9 @@ async function handleOAuthReturn(){
   const u = new URL(location.href);
   const code = u.searchParams.get('code');
   if(!code) return;
-  const verifier = localStorage.getItem('or_verifier');
+  const verifier = localStorage.getItem('or_verifier') || '';
   u.searchParams.delete('code'); history.replaceState({},'', u.toString());
-  if(!verifier){ keyNote('OAuth: verifier დაიკარგა, სცადე თავიდან', true); return; }
+  $("app").classList.remove("hidden"); $("noToken").classList.add("hidden");
   keyNote('OpenRouter დაკავშირება…');
   try{ await callFn('oauth-openrouter',{ code, verifier }); keyNote('OpenRouter დაკავშირდა ✓ (გასაღები vault-ში)'); }
   catch(e){ keyNote('OAuth შეცდომა: '+e.message, true); }
