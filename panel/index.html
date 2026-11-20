@@ -102,6 +102,16 @@
       <div class="label">პასუხები</div>
       <div id="runs"><span class="empty">ჯერ ჩანაწერი არ არის</span></div>
     </div>
+
+    <div class="card">
+      <div class="label">გასაღებები — vault-ში ინახება (არა ბრაუზერში, არა ჩატში)</div>
+      <select id="keyName" style="width:100%;background:#11141a;color:var(--txt);border:1px solid var(--line);border-radius:8px;padding:10px;margin-bottom:10px;font:inherit">
+        <option value="GEMINI_API_KEY">GEMINI_API_KEY</option>
+        <option value="OPENROUTER_API_KEY">OPENROUTER_API_KEY</option>
+      </select>
+      <input id="keyVal" type="password" placeholder="გასაღები" autocomplete="off">
+      <div class="sendrow"><span class="msg" id="keyMsg"></span><button class="btn" id="keySave">შენახვა vault-ში</button></div>
+    </div>
   </div>
 </div>
 
@@ -163,6 +173,23 @@ $("send").onclick = async ()=>{
   finally{ $("send").disabled = false; }
 };
 function sendNote(t,err){ const el=$("sendMsg"); el.textContent=t; el.className="msg"+(err?" err":""); }
+
+/* ---------- keys → vault (server-side, never chat) ---------- */
+async function invokeFn(fn, payload){
+  const { data, error } = await db.functions.invoke(fn, { body: payload });
+  if (error) { let m=error.message||"შეცდომა"; try{ const j=await error.context.json(); if(j.error)m=j.error; }catch(e){} throw new Error(m); }
+  return data;
+}
+$("keySave").onclick = async ()=>{
+  const name = $("keyName").value;
+  const value = $("keyVal").value.trim();
+  if(!value) return keyNote("ჩაწერე გასაღები", true);
+  $("keySave").disabled = true; keyNote("ინახება vault-ში…");
+  try{ await invokeFn("secret-set", { name, value }); $("keyVal").value=""; keyNote("შენახულია vault-ში ✓"); }
+  catch(e){ keyNote("შეცდომა: "+e.message, true); }
+  finally{ $("keySave").disabled = false; }
+};
+function keyNote(t,err){ const el=$("keyMsg"); el.textContent=t; el.className="msg"+(err?" err":""); }
 
 /* ---------- status + feed (polling) ---------- */
 function dotClass(s){ s=(s||"").toLowerCase();
