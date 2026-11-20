@@ -5,42 +5,30 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>აგენტების სამართავი პანელი</title>
 <style>
-  :root{
-    --bg:#0f1115; --panel:#171a21; --line:#272b36; --txt:#e7e9ee;
-    --muted:#9aa3b2; --accent:#4f8cff; --ok:#2ecc71; --run:#f1c40f;
-    --fail:#e74c3c; --queued:#7f8c9a;
-  }
+  :root{--bg:#0f1115;--panel:#171a21;--line:#272b36;--txt:#e7e9ee;--muted:#9aa3b2;--accent:#4f8cff;--ok:#2ecc71;--run:#f1c40f;--fail:#e74c3c;--queued:#7f8c9a}
   *{box-sizing:border-box}
-  body{margin:0;background:var(--bg);color:var(--txt);
-    font-family:system-ui,-apple-system,"Segoe UI",sans-serif;font-size:15px;line-height:1.5}
+  body{margin:0;background:var(--bg);color:var(--txt);font-family:system-ui,-apple-system,"Segoe UI",sans-serif;font-size:15px;line-height:1.5}
   .wrap{max-width:820px;margin:0 auto;padding:16px}
   h1{font-size:18px;margin:0 0 14px}
   .card{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:14px;margin-bottom:14px}
   .label{color:var(--muted);font-size:13px;margin-bottom:8px}
   .btn{background:#222734;color:var(--txt);border:1px solid var(--line);border-radius:8px;padding:9px 14px;cursor:pointer;font-size:14px}
-  .btn:hover{border-color:var(--accent)}
-  .btn.primary{background:var(--accent);border-color:var(--accent);font-weight:600}
+  .btn:hover{border-color:var(--accent)} .btn.primary{background:var(--accent);border-color:var(--accent);font-weight:600}
   .btn:disabled{opacity:.5;cursor:not-allowed}
-  input,textarea{width:100%;background:#11141a;color:var(--txt);border:1px solid var(--line);border-radius:8px;padding:10px;font:inherit;margin-bottom:10px}
+  input,textarea,select{width:100%;background:#11141a;color:var(--txt);border:1px solid var(--line);border-radius:8px;padding:10px;font:inherit;margin-bottom:10px}
   textarea{min-height:90px;resize:vertical}
-  .msg{color:var(--muted);font-size:13px;min-height:18px}
-  .msg.err{color:var(--fail)}
+  .msg{color:var(--muted);font-size:13px;min-height:18px} .msg.err{color:var(--fail)}
   .hidden{display:none}
-  /* status bar */
   .statusbar{display:flex;flex-wrap:wrap;gap:10px}
   .chip{display:flex;align-items:center;gap:8px;background:#11141a;border:1px solid var(--line);border-radius:999px;padding:6px 12px}
   .dot{width:9px;height:9px;border-radius:50%;background:var(--queued)}
   .dot.online{background:var(--ok)} .dot.busy{background:var(--run)} .dot.offline{background:var(--fail)}
   .chip .nm{font-weight:600} .chip .st{color:var(--muted);font-size:12px}
-  /* selection */
   .agents{display:flex;flex-wrap:wrap;gap:10px;margin-bottom:10px}
   .agents label{display:flex;align-items:center;gap:8px;background:#11141a;border:1px solid var(--line);border-radius:8px;padding:8px 12px;cursor:pointer;user-select:none}
   .agents input{width:17px;height:17px;accent-color:var(--accent);margin:0}
   .quick{display:flex;gap:8px;margin-bottom:14px}
   .sendrow{display:flex;justify-content:space-between;align-items:center;gap:10px}
-  .top{display:flex;justify-content:space-between;align-items:center;margin-bottom:14px}
-  .who{color:var(--muted);font-size:12px}
-  /* runs */
   .run{border:1px solid var(--line);border-radius:10px;padding:10px 12px;margin-bottom:10px;background:#11141a}
   .run .rtop{display:flex;justify-content:space-between;align-items:center;gap:10px;margin-bottom:4px}
   .run .agent{font-weight:600}
@@ -57,23 +45,12 @@
 <div class="wrap">
   <h1>აგენტების სამართავი პანელი</h1>
 
-  <!-- LOGIN -->
-  <div id="login" class="card hidden">
-    <div class="label">შესვლა — ელფოსტის ლინკით</div>
-    <input id="email" type="email" placeholder="ელფოსტა" value="zviadadzetornike@gmail.com" autocomplete="email">
-    <div id="step1">
-      <button class="btn primary" id="sendCode">შესვლის ლინკის გამოგზავნა</button>
-    </div>
-    <div class="msg" id="loginMsg"></div>
+  <div id="noToken" class="card hidden">
+    <div class="label">წვდომა</div>
+    <div>სწორი ლინკით შედი (ლინკში შენი გასაღებია). თუ ლინკი დაგეკარგა — მთხოვე ახალი.</div>
   </div>
 
-  <!-- APP -->
   <div id="app" class="hidden">
-    <div class="top">
-      <span class="who" id="who"></span>
-      <button class="btn" id="logout">გასვლა</button>
-    </div>
-
     <div class="card">
       <div class="label">სტატუსი</div>
       <div id="statusbar" class="statusbar"><span class="empty">იტვირთება…</span></div>
@@ -92,10 +69,7 @@
       </div>
       <div class="label">დავალება</div>
       <textarea id="message" placeholder="დაწერე დავალება მონიშნული აგენტებისთვის…"></textarea>
-      <div class="sendrow">
-        <span class="msg" id="sendMsg"></span>
-        <button class="btn primary" id="send">გაგზავნა</button>
-      </div>
+      <div class="sendrow"><span class="msg" id="sendMsg"></span><button class="btn primary" id="send">გაგზავნა</button></div>
     </div>
 
     <div class="card">
@@ -105,7 +79,7 @@
 
     <div class="card">
       <div class="label">გასაღებები — vault-ში ინახება (არა ბრაუზერში, არა ჩატში)</div>
-      <select id="keyName" style="width:100%;background:#11141a;color:var(--txt);border:1px solid var(--line);border-radius:8px;padding:10px;margin-bottom:10px;font:inherit">
+      <select id="keyName">
         <option value="GEMINI_API_KEY">GEMINI_API_KEY</option>
         <option value="OPENROUTER_API_KEY">OPENROUTER_API_KEY</option>
       </select>
@@ -123,44 +97,32 @@
 <script>
 const SUPABASE_URL = "https://felhvrlanhfbqmmpqume.supabase.co";
 const SUPABASE_ANON_KEY = "sb_publishable_QWVceKlxgdn7jXM00drWbA_NypDZ8_I";
-const FUNCTION = "dispatch-task";
-const POLL_MS = 5000;
-
 const db = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 const $ = (id)=>document.getElementById(id);
 const esc = (s)=>String(s??"").replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
 
-/* ---------- auth ---------- */
-async function callFn(payload){
-  const { data, error } = await db.functions.invoke(FUNCTION, { body: payload });
-  if (error) {
-    let m = error.message || "შეცდომა";
-    try { const j = await error.context.json(); if (j.error) m = j.error; } catch(e){}
-    throw new Error(m);
-  }
+/* token from URL hash (#k=...) → localStorage */
+function readToken(){
+  const h = new URLSearchParams(location.hash.slice(1));
+  const k = h.get('k');
+  if(k){ localStorage.setItem('panel_token', k); history.replaceState({},'', location.origin+location.pathname+location.search); }
+  return localStorage.getItem('panel_token') || '';
+}
+let TOKEN = readToken();
+
+async function callFn(fn, payload){
+  const { data, error } = await db.functions.invoke(fn, { body: payload, headers: { 'x-panel-key': TOKEN } });
+  if (error){ let m=error.message||'შეცდომა'; try{ const j=await error.context.json(); if(j.error)m=j.error; }catch(e){} throw new Error(m); }
   return data;
 }
 
-$("sendCode").onclick = async ()=>{
-  const email = $("email").value.trim();
-  if(!email) return loginNote("ჩაწერე ელფოსტა", true);
-  $("sendCode").disabled = true; loginNote("იგზავნება ლინკი…");
-  const { error } = await db.auth.signInWithOtp({ email, options:{ emailRedirectTo: location.origin + location.pathname, shouldCreateUser:true } });
-  $("sendCode").disabled = false;
-  if(error) return loginNote("შეცდომა: "+error.message, true);
-  loginNote("ლინკი გაიგზავნა — გახსენი ფოსტა ამ ტელეფონში და დააჭირე „Sign in“-ს");
-};
-db.auth.onAuthStateChange((_e, session)=>{ if(session) boot(); });
-$("logout").onclick = async ()=>{ await db.auth.signOut(); location.reload(); };
-function loginNote(t,err){ const el=$("loginMsg"); el.textContent=t; el.className="msg"+(err?" err":""); }
-
-/* ---------- selection ---------- */
+/* selection */
 const boxes = ()=>[...document.querySelectorAll('#agentSel input[type=checkbox]')];
 $("selAll").onclick = ()=> boxes().forEach(b=>b.checked=true);
 $("selNone").onclick = ()=> boxes().forEach(b=>b.checked=false);
 const selected = ()=> boxes().filter(b=>b.checked).map(b=>b.value);
 
-/* ---------- dispatch ---------- */
+/* dispatch */
 $("send").onclick = async ()=>{
   const message = $("message").value.trim();
   const targets = selected();
@@ -168,34 +130,24 @@ $("send").onclick = async ()=>{
   if(message.length<3) return sendNote("დავალება ძალიან მოკლეა (მინ. 3 სიმბოლო)", true);
   if(!targets.length) return sendNote("მონიშნე მინიმუმ ერთი აგენტი", true);
   $("send").disabled = true; sendNote("იგზავნება…");
-  try{
-    await callFn({ action:"dispatch", message, targets });
-    $("message").value = "";
-    sendNote("გაიგზავნა → "+targets.join(", "));
-    refresh();
-  }catch(e){ sendNote("შეცდომა: "+e.message, true); }
+  try{ await callFn("dispatch-task",{ action:"dispatch", message, targets }); $("message").value=""; sendNote("გაიგზავნა → "+targets.join(", ")); refresh(); }
+  catch(e){ sendNote("შეცდომა: "+e.message, true); }
   finally{ $("send").disabled = false; }
 };
 function sendNote(t,err){ const el=$("sendMsg"); el.textContent=t; el.className="msg"+(err?" err":""); }
 
-/* ---------- keys → vault (server-side, never chat) ---------- */
-async function invokeFn(fn, payload){
-  const { data, error } = await db.functions.invoke(fn, { body: payload });
-  if (error) { let m=error.message||"შეცდომა"; try{ const j=await error.context.json(); if(j.error)m=j.error; }catch(e){} throw new Error(m); }
-  return data;
-}
+/* keys → vault */
 $("keySave").onclick = async ()=>{
-  const name = $("keyName").value;
-  const value = $("keyVal").value.trim();
+  const name=$("keyName").value, value=$("keyVal").value.trim();
   if(!value) return keyNote("ჩაწერე გასაღები", true);
   $("keySave").disabled = true; keyNote("ინახება vault-ში…");
-  try{ await invokeFn("secret-set", { name, value }); $("keyVal").value=""; keyNote("შენახულია vault-ში ✓"); }
+  try{ await callFn("secret-set",{ name, value }); $("keyVal").value=""; keyNote("შენახულია vault-ში ✓"); }
   catch(e){ keyNote("შეცდომა: "+e.message, true); }
   finally{ $("keySave").disabled = false; }
 };
 function keyNote(t,err){ const el=$("keyMsg"); el.textContent=t; el.className="msg"+(err?" err":""); }
 
-/* ---------- OpenRouter OAuth (PKCE) → vault, აკრეფის გარეშე ---------- */
+/* OpenRouter OAuth (PKCE) → vault, აკრეფის გარეშე */
 function b64url(buf){ return btoa(String.fromCharCode(...new Uint8Array(buf))).replace(/\+/g,'-').replace(/\//g,'_').replace(/=+$/,''); }
 $("orConnect").onclick = async ()=>{
   const verifier = b64url(crypto.getRandomValues(new Uint8Array(32)));
@@ -209,15 +161,15 @@ async function handleOAuthReturn(){
   const code = u.searchParams.get('code');
   if(!code) return;
   const verifier = sessionStorage.getItem('or_verifier');
-  u.searchParams.delete('code'); history.replaceState({}, '', u.toString());
+  u.searchParams.delete('code'); history.replaceState({},'', u.toString());
   if(!verifier){ keyNote('OAuth: verifier დაიკარგა, სცადე თავიდან', true); return; }
   keyNote('OpenRouter დაკავშირება…');
-  try{ await invokeFn('oauth-openrouter', { code, verifier }); keyNote('OpenRouter დაკავშირდა ✓ (გასაღები vault-ში)'); }
+  try{ await callFn('oauth-openrouter',{ code, verifier }); keyNote('OpenRouter დაკავშირდა ✓ (გასაღები vault-ში)'); }
   catch(e){ keyNote('OAuth შეცდომა: '+e.message, true); }
   sessionStorage.removeItem('or_verifier');
 }
 
-/* ---------- status + feed (polling) ---------- */
+/* status + feed */
 function dotClass(s){ s=(s||"").toLowerCase();
   if(s==="completed"||s==="done") return "online";
   if(s==="running"||s==="claimed") return "busy";
@@ -229,8 +181,7 @@ function renderAgents(list){
   el.innerHTML = list.map(a=>{
     const seen = a.last_seen ? new Date(a.last_seen).toLocaleTimeString("ka-GE") : "";
     const st = a.status||"unknown";
-    return `<div class="chip"><span class="dot ${dotClass(st)}"></span>
-      <span class="nm">${esc(a.name)}</span><span class="st">${esc(st)}${seen?" · "+seen:""}</span></div>`;
+    return `<div class="chip"><span class="dot ${dotClass(st)}"></span><span class="nm">${esc(a.name)}</span><span class="st">${esc(st)}${seen?" · "+seen:""}</span></div>`;
   }).join("");
 }
 function badge(s){ s=(s||"queued").toLowerCase(); return `<span class="badge ${s}">${esc(s)}</span>`; }
@@ -239,44 +190,27 @@ function renderRuns(runs){
   if(!runs||!runs.length){ el.innerHTML='<span class="empty">ჯერ ჩანაწერი არ არის</span>'; return; }
   el.innerHTML = runs.map(r=>{
     const ts = r.created_at ? new Date(r.created_at).toLocaleString("ka-GE") : "";
-    return `<div class="run">
-      <div class="rtop"><span class="agent">${esc(r.assignee)}</span>${badge(r.status)}</div>
-      ${r.title?`<div class="title">${esc(r.title)}</div>`:""}
-      <div class="ts">${ts}</div>
-      ${r.result?`<div class="out">${esc(r.result)}</div>`:""}
-    </div>`;
+    return `<div class="run"><div class="rtop"><span class="agent">${esc(r.assignee)}</span>${badge(r.status)}</div>${r.title?`<div class="title">${esc(r.title)}</div>`:""}<div class="ts">${ts}</div>${r.result?`<div class="out">${esc(r.result)}</div>`:""}</div>`;
   }).join("");
 }
 async function refresh(){
-  try{
-    const [a,f] = await Promise.all([ callFn({action:"agents"}), callFn({action:"feed"}) ]);
-    renderAgents(a.agents); renderRuns(f.runs);
-  }catch(e){ /* ignore transient poll errors */ }
+  try{ const [a,f] = await Promise.all([ callFn("dispatch-task",{action:"agents"}), callFn("dispatch-task",{action:"feed"}) ]); renderAgents(a.agents); renderRuns(f.runs); }
+  catch(e){ /* ignore transient */ }
 }
 let liveChannel=null, debounce=null;
 function onSignal(){ clearTimeout(debounce); debounce=setTimeout(refresh, 300); }
 async function startLive(){
-  await refresh();                 // ერთი საწყისი წამოღება
+  await refresh();
   if(liveChannel) await db.removeChannel(liveChannel);
-  liveChannel = db.channel('panel-nerve')
-    .on('broadcast', { event:'changed' }, onSignal)
-    .subscribe();
+  liveChannel = db.channel('panel-nerve').on('broadcast', { event:'changed' }, onSignal).subscribe();
 }
 
-/* ---------- boot ---------- */
-async function boot(){
-  const { data:{ session } } = await db.auth.getSession();
-  if(session){
-    $("login").classList.add("hidden");
-    $("app").classList.remove("hidden");
-    $("who").textContent = session.user.email;
-    startLive();
-    handleOAuthReturn();
-  }else{
-    $("app").classList.add("hidden");
-    $("login").classList.remove("hidden");
-    if(liveChannel){ db.removeChannel(liveChannel); liveChannel=null; }
-  }
+/* boot */
+function boot(){
+  TOKEN = readToken();
+  if(!TOKEN){ $("app").classList.add("hidden"); $("noToken").classList.remove("hidden"); return; }
+  $("noToken").classList.add("hidden"); $("app").classList.remove("hidden");
+  startLive(); handleOAuthReturn();
 }
 boot();
 </script>
