@@ -59,14 +59,10 @@
 
   <!-- LOGIN -->
   <div id="login" class="card hidden">
-    <div class="label">შესვლა — ელფოსტის კოდით</div>
+    <div class="label">შესვლა — ელფოსტის ლინკით</div>
     <input id="email" type="email" placeholder="ელფოსტა" value="zviadadzetornike@gmail.com" autocomplete="email">
     <div id="step1">
-      <button class="btn primary" id="sendCode">კოდის გამოგზავნა</button>
-    </div>
-    <div id="step2" class="hidden">
-      <input id="code" inputmode="numeric" placeholder="ფოსტაზე მოსული კოდი">
-      <button class="btn primary" id="verify">შესვლა</button>
+      <button class="btn primary" id="sendCode">შესვლის ლინკის გამოგზავნა</button>
     </div>
     <div class="msg" id="loginMsg"></div>
   </div>
@@ -134,23 +130,13 @@ async function callFn(payload){
 $("sendCode").onclick = async ()=>{
   const email = $("email").value.trim();
   if(!email) return loginNote("ჩაწერე ელფოსტა", true);
-  $("sendCode").disabled = true; loginNote("იგზავნება კოდი…");
-  const { error } = await db.auth.signInWithOtp({ email, options:{ shouldCreateUser:true } });
+  $("sendCode").disabled = true; loginNote("იგზავნება ლინკი…");
+  const { error } = await db.auth.signInWithOtp({ email, options:{ emailRedirectTo: location.origin + location.pathname, shouldCreateUser:true } });
   $("sendCode").disabled = false;
   if(error) return loginNote("შეცდომა: "+error.message, true);
-  $("step2").classList.remove("hidden");
-  loginNote("კოდი გაიგზავნა — შეამოწმე ფოსტა");
+  loginNote("ლინკი გაიგზავნა — გახსენი ფოსტა ამ ტელეფონში და დააჭირე „Sign in“-ს");
 };
-$("verify").onclick = async ()=>{
-  const email = $("email").value.trim();
-  const token = $("code").value.trim();
-  if(!token) return loginNote("ჩაწერე კოდი", true);
-  $("verify").disabled = true; loginNote("შემოწმება…");
-  const { error } = await db.auth.verifyOtp({ email, token, type:"email" });
-  $("verify").disabled = false;
-  if(error) return loginNote("არასწორი კოდი: "+error.message, true);
-  boot();
-};
+db.auth.onAuthStateChange((_e, session)=>{ if(session) boot(); });
 $("logout").onclick = async ()=>{ await db.auth.signOut(); location.reload(); };
 function loginNote(t,err){ const el=$("loginMsg"); el.textContent=t; el.className="msg"+(err?" err":""); }
 
