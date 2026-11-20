@@ -204,10 +204,9 @@ let liveChannel=null, debounce=null;
 function onSignal(){ clearTimeout(debounce); debounce=setTimeout(refresh, 300); }
 async function startLive(){
   await refresh();                 // ერთი საწყისი წამოღება
-  try{ await db.realtime.setAuth(); }catch(e){}
   if(liveChannel) await db.removeChannel(liveChannel);
-  liveChannel = db.channel('panel-live')
-    .on('postgres_changes', { event:'INSERT', schema:'public', table:'panel_events' }, onSignal)
+  liveChannel = db.channel('panel-nerve')
+    .on('broadcast', { event:'changed' }, onSignal)
     .subscribe();
 }
 
