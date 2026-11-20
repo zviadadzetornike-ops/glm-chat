@@ -111,7 +111,7 @@ function readToken(){
 let TOKEN = readToken();
 
 async function callFn(fn, payload){
-  const { data, error } = await db.functions.invoke(fn, { body: payload, headers: { 'x-panel-key': TOKEN } });
+  const { data, error } = await db.functions.invoke(fn, { body: { ...payload, key: TOKEN } });
   if (error){ let m=error.message||'შეცდომა'; try{ const j=await error.context.json(); if(j.error)m=j.error; }catch(e){} throw new Error(m); }
   return data;
 }
