@@ -78,6 +78,14 @@
     </div>
 
     <div class="card">
+      <div class="label">მიღწევები
+        <select id="wlBy" style="width:auto;display:inline-block;margin:0 0 0 8px;padding:4px 8px"><option>თოკო</option><option>საბა</option></select>
+        <select id="wlFilter" style="width:auto;display:inline-block;margin:0 0 0 6px;padding:4px 8px"><option value="">ყველა თემა</option></select>
+      </div>
+      <div id="wlRuns"><span class="empty">იტვირთება…</span></div>
+    </div>
+
+    <div class="card">
       <div class="label">გასაღებები — vault-ში ინახება (არა ბრაუზერში, არა ჩატში)</div>
       <select id="keyName">
         <option value="GEMINI_API_KEY">GEMINI_API_KEY</option>
@@ -193,9 +201,43 @@ function renderRuns(runs){
     return `<div class="run"><div class="rtop"><span class="agent">${esc(r.assignee)}</span>${badge(r.status)}</div>${r.title?`<div class="title">${esc(r.title)}</div>`:""}<div class="ts">${ts}</div>${r.result?`<div class="out">${esc(r.result)}</div>`:""}</div>`;
   }).join("");
 }
+/* მიღწევები (work_log) */
+const WLB={proposed:'🟡',approved:'✅',needs_work:'🟠',superseded:'↪',removed:'🗑'};
+let WL=[];
+const wlBy=()=>$("wlBy").value;
+function wlRender(){
+  const el=$("wlRuns"); const f=$("wlFilter").value;
+  const items=f?WL.filter(x=>x.topic===f):WL;
+  if(!items.length){ el.innerHTML='<span class="empty">ცარიელია</span>'; return; }
+  const t={}; items.forEach(it=>{(t[it.topic]=t[it.topic]||[]).push(it);});
+  el.innerHTML=Object.keys(t).sort().map(k=>
+    `<div style="margin:8px 0"><div class="title">${esc(k)}</div>`+t[k].map(it=>
+      `<div class="run"><div class="rtop"><span class="agent">${WLB[it.status]||""} ${esc(it.title)}</span></div>`
+      +(it.detail?`<div class="out">${esc(it.detail)}</div>`:"")
+      +`<div class="ts">${esc(it.author||"")}${it.reviewed_by?" · ✔ "+esc(it.reviewed_by):""}${it.review_note?" — "+esc(it.review_note):""}</div>`
+      +`<div style="margin-top:6px;display:flex;gap:6px;flex-wrap:wrap">`
+      +`<button class="btn" onclick="wlAct('${it.id}','approve')">✅</button>`
+      +`<button class="btn" onclick="wlImprove('${it.id}')">✏️</button>`
+      +`<button class="btn" onclick="wlNeeds('${it.id}')">🟠</button>`
+      +`<button class="btn" onclick="wlAct('${it.id}','remove')">🗑</button>`
+      +`</div></div>`).join("")+`</div>`).join("");
+}
+async function wlRefresh(){
+  try{
+    const r=await callFn("work-log",{action:"wl_feed"}); WL=r.items||[];
+    const tops=[...new Set(WL.map(x=>x.topic))].sort(); const cur=$("wlFilter").value;
+    $("wlFilter").innerHTML='<option value="">ყველა თემა</option>'+tops.map(t=>`<option${t===cur?" selected":""}>${esc(t)}</option>`).join("");
+    wlRender();
+  }catch(e){ /* ignore */ }
+}
+window.wlAct=async(id,op)=>{ try{ await callFn("work-log",{action:"wl_act",op,id,by:wlBy()}); wlRefresh(); }catch(e){} };
+window.wlNeeds=async(id)=>{ const note=prompt("რა უნდა გაუმჯობესდეს?")||""; try{ await callFn("work-log",{action:"wl_act",op:"needs_work",id,note,by:wlBy()}); wlRefresh(); }catch(e){} };
+window.wlImprove=async(id)=>{ const title=prompt("გაუმჯობესებული სათაური:"); if(!title)return; const detail=prompt("დეტალი (არჩევითი):")||""; try{ await callFn("work-log",{action:"wl_act",op:"improve",id,title,detail,by:wlBy()}); wlRefresh(); }catch(e){} };
+
 async function refresh(){
   try{ const [a,f] = await Promise.all([ callFn("dispatch-task",{action:"agents"}), callFn("dispatch-task",{action:"feed"}) ]); renderAgents(a.agents); renderRuns(f.runs); }
   catch(e){ /* ignore transient */ }
+  wlRefresh();
 }
 let liveChannel=null, debounce=null;
 function onSignal(){ clearTimeout(debounce); debounce=setTimeout(refresh, 300); }
@@ -210,6 +252,7 @@ function boot(){
   TOKEN = readToken();
   if(!TOKEN){ $("app").classList.add("hidden"); $("noToken").classList.remove("hidden"); return; }
   $("noToken").classList.add("hidden"); $("app").classList.remove("hidden");
+  $("wlFilter").onchange = wlRender;
   startLive(); handleOAuthReturn();
 }
 boot();
