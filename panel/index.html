@@ -57,6 +57,11 @@
     </div>
 
     <div class="card">
+      <div class="label">დასტურები (gate) — ელოდება შენს გადაწყვეტას</div>
+      <div id="gateRuns"><span class="empty">იტვირთება…</span></div>
+    </div>
+
+    <div class="card">
       <div class="label">აირჩიე სამიზნე</div>
       <div class="agents" id="agentSel">
         <label><input type="checkbox" value="claude">claude</label>
@@ -234,10 +239,35 @@ window.wlAct=async(id,op)=>{ try{ await callFn("work-log",{action:"wl_act",op,id
 window.wlNeeds=async(id)=>{ const note=prompt("რა უნდა გაუმჯობესდეს?")||""; try{ await callFn("work-log",{action:"wl_act",op:"needs_work",id,note,by:wlBy()}); wlRefresh(); }catch(e){} };
 window.wlImprove=async(id)=>{ const title=prompt("გაუმჯობესებული სათაური:"); if(!title)return; const detail=prompt("დეტალი (არჩევითი):")||""; try{ await callFn("work-log",{action:"wl_act",op:"improve",id,title,detail,by:wlBy()}); wlRefresh(); }catch(e){} };
 
+/* დასტურები (gate / approvals) */
+async function gateRefresh(){
+  try{
+    const r=await callFn("gate",{action:"list"}); const items=r.items||[];
+    const el=$("gateRuns");
+    if(!items.length){ el.innerHTML='<span class="empty">ახალი დასტური არ არის</span>'; return; }
+    el.innerHTML=items.map(it=>{
+      const ts=it.requested_at?new Date(it.requested_at).toLocaleString("ka-GE"):"";
+      return `<div class="run"><div class="rtop"><span class="agent">⏳ ${esc(it.agent)} · ${esc(it.action_type)}</span><span class="badge running">pending</span></div>`
+        +`<div class="out">${esc(it.summary||"")}</div>`
+        +`<div class="ts">${ts}</div>`
+        +`<div style="margin-top:8px;display:flex;gap:8px;flex-wrap:wrap">`
+        +`<button class="btn primary" onclick="gateDecide('${it.id}','approve')">✅ დავამტკიცებ</button>`
+        +`<button class="btn" onclick="gateDecide('${it.id}','deny')">⛔ უარი</button>`
+        +`</div></div>`;
+    }).join("");
+  }catch(e){ /* ignore */ }
+}
+window.gateDecide=async(id,decision)=>{
+  const q = decision==='approve' ? 'დავამტკიცო ეს ქმედება?' : 'უარი ვთქვა ამ ქმედებაზე?';
+  if(!confirm(q)) return;
+  try{ await callFn("gate",{action:"decide",id,decision,by:($("wlBy")?$("wlBy").value:"თოკო")}); gateRefresh(); }
+  catch(e){ alert("შეცდომა: "+e.message); }
+};
+
 async function refresh(){
   try{ const [a,f] = await Promise.all([ callFn("dispatch-task",{action:"agents"}), callFn("dispatch-task",{action:"feed"}) ]); renderAgents(a.agents); renderRuns(f.runs); }
   catch(e){ /* ignore transient */ }
-  wlRefresh();
+  wlRefresh(); gateRefresh();
 }
 let liveChannel=null, debounce=null;
 function onSignal(){ clearTimeout(debounce); debounce=setTimeout(refresh, 300); }
